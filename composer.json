@@ -1,18 +1,27 @@
 {
     "name": "redu/sns-push",
-    "description": "API Wrapper for Amazon SNS PHP SDK",
     "type": "project",
+    "description": "API Wrapper for Amazon SNS PHP SDK",
+    "keywords": ["amazon", "aws", "sns", "api"],
+    "homepage": "https://github.com/ReduGroup/sns-push",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Forcer",
+            "email": "tech@redu.co.uk",
+            "role": "Developer"
+        },
+        {
+            "name": "Jonathon Henderson",
+            "email": "tech@redu.co.uk",
+            "role": "Developer"
+        }
+    ],
     "require": {
+        "php": ">=7.0.0",
         "aws/aws-sdk-php": "^3.36",
         "aws/aws-php-sns-message-validator": "^1.4",
         "psr/log": "^1.0",
         "doctrine/cache": "^1.7"
-    },
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Redu",
-            "email": "tech@redu.co.uk"
-        }
-    ]
+    }
 }

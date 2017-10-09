@@ -2,7 +2,7 @@
 
 namespace SNSPush\Exceptions;
 
-class SNSPushException extends Exception
+class SNSPushException extends \Exception
 {
-
+    // ...
 }
