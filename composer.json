@@ -5,6 +5,11 @@
     "keywords": ["amazon", "aws", "sns", "api"],
     "homepage": "https://github.com/ReduGroup/sns-push",
     "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "SNSPush\\": "src/"
+        }
+    },
     "authors": [
         {
             "name": "Michael Forcer",
