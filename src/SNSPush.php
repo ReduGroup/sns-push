@@ -18,6 +18,7 @@ class SNSPush
      */
     const TYPE_ENDPOINT = 1;
     const TYPE_TOPIC = 2;
+    const TYPE_APPLICATION = 3;
 
     /**
      * List of endpoint targets supported by this package.
@@ -25,7 +26,7 @@ class SNSPush
      * @var array
      */
     protected static $types = [
-        self::TYPE_ENDPOINT, self::TYPE_TOPIC
+        self::TYPE_ENDPOINT, self::TYPE_TOPIC, self::TYPE_APPLICATION
     ];
 
     /**
@@ -144,13 +145,16 @@ class SNSPush
      * @param $platform
      *
      * @return mixed
+     * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
     public function addDevice($token, $platform)
     {
+        $arn = $this->arnBuilder->create(self::TYPE_APPLICATION, $platform);
+
         try {
             $result = $this->client->createPlatformEndpoint([
-                'PlatformApplicationArn' => $this->getPlatformApplicationArn($platform),
+                $arn->getKey() => $arn->toString(),
                 'Token' => $token
             ]);
 
@@ -170,15 +174,18 @@ class SNSPush
      * @param array $atts
      *
      * @return bool|mixed
+     * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
     public function subscribeDeviceToTopic($endpointArn, $topicArn, array $atts = [])
     {
+        $arn = $this->arnBuilder->create(self::TYPE_TOPIC, $topicArn);
+
         try {
             $result = $this->client->subscribe([
                 'Endpoint' => $endpointArn,
                 'Protocol' => $atts['protocol'] ?? 'application',
-                'TopicArn' => $this->getTopicArn($topicArn)
+                $arn->getKey() => $arn->toString()
             ]);
 
             return $result['SubscriptionArn'] ?? false;
@@ -338,7 +345,7 @@ class SNSPush
 
         try {
             $result = $this->client->publish($data);
-            return $result['MessageId'] ?? false;
+            return $result ?? false;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
         } catch (ApiGatewayException $e) {

@@ -22,6 +22,6 @@ class ApplicationARN extends ARN
      */
     public function getKey(): string
     {
-        return 'TargetArn';
+        return 'PlatformApplicationArn';
     }
 }

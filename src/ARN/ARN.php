@@ -126,9 +126,9 @@ abstract class ARN
      *
      * @return string
      */
-    public function getString(): string
+    public function toString(): string
     {
-        return 'arn:aws:sns:' . $this->getRegion()->getString() . ':' . $this->getAccountId() . ':' . $this->getTarget();
+        return 'arn:aws:sns:' . $this->getRegion()->toString() . ':' . $this->getAccountId() . ':' . $this->getTarget();
     }
 
     /**

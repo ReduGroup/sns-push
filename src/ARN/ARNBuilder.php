@@ -3,6 +3,7 @@
 namespace SNSPush\ARN;
 
 use InvalidArgumentException;
+use SNSPush\Region;
 use SNSPush\SNSPush;
 
 class ARNBuilder
@@ -21,14 +22,19 @@ class ARNBuilder
      */
     protected $region;
 
+    protected $platformApplications;
+
     /**
      * ARNBuilder constructor.
      *
      * @param $config
+     *
+     * @throws \InvalidArgumentException
      */
     public function __construct($config)
     {
         $this->accountId = $config['account_id'];
+        $this->platformApplications = $config['platform_applications'];
 
         $this->region = Region::parse($config['region']);
     }
@@ -48,6 +54,8 @@ class ARNBuilder
             return $this->createEndpointARN($target);
         } elseif ($type === SNSPush::TYPE_TOPIC) {
             return $this->createTopicARN($target);
+        } elseif ($type === SNSPush::TYPE_APPLICATION) {
+            return $this->createApplicationARN($target);
         }
 
         throw new InvalidArgumentException('Invalid type.');
@@ -76,6 +84,8 @@ class ARNBuilder
      */
     public function createApplicationARN($target): ApplicationARN
     {
+        $target = 'app/' . $this->platformApplications[$target];
+
         return new ApplicationARN($this->region, $this->accountId, $target);
     }
 
