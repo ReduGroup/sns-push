@@ -11,7 +11,7 @@ class SNSPushServiceProvider extends ServiceProvider
      *
      * @var string
      */
-    private $packageName = 'sns-push';
+    protected $packageName = 'sns-push';
 
     /**
      * Perform post-registration booting of services.
