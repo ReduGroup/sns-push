@@ -328,28 +328,73 @@ class SNSPush
      *
      * @param \SNSPush\ARN\ARN $arn
      * @param                  $message
-     * @param                  $data
+     * @param                  $atts
      *
-     * @return bool|mixed
+     * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function sendPushNotificationWithArn(ARN $arn, $message, $data)
+    public function sendPushNotificationWithArn(ARN $arn, $message, $atts)
     {
         $data[$arn->getKey()] = $arn->toString();
 
         // Set the message
         if (!empty($message)) {
-            $data['Message'] = $message;
-            $data['MessageStructure'] = $atts['message_structure'] ??  'string';
+            $data['MessageStructure'] = $atts['message_structure'] ?? 'json';
+
+            $data['Message'] = $data['MessageStructure'] === 'json' ?
+                $this->formatPushMessageAsJson($message, $atts['message_data']) : $message;
         }
 
         try {
             $result = $this->client->publish($data);
+
             return $result ?? false;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
         } catch (ApiGatewayException $e) {
             throw new SNSPushException('There was an unknown problem with the AWS SNS API. Code: ' . $e->getCode());
         }
+    }
+
+    /**
+     * Format push message as json in required format for various platforms.
+     *
+     * @param       $message
+     * @param array $data
+     *
+     * @return string
+     */
+    public function formatPushMessageAsJson($message, array $data = []): string
+    {
+        $platformApplications = $this->config['platform_applications'];
+
+        // Default message format.
+        $messageArray = [
+            'default' => $message
+        ];
+
+        // iOS message format.
+        if (array_key_exists('ios', $platformApplications)) {
+            foreach (['APNS_SANDBOX', 'APNS'] as $platform) {
+                $messageArray[$platform] = [
+                    'aps' => [
+                        'alert' => $message,
+                        $data
+                    ]
+                ];
+            }
+        }
+
+        // Android message format.
+        if (array_key_exists('android', $platformApplications)) {
+            $messageArray['GCM'] = [
+                'data' => [
+                    'message' => $message,
+                    $data
+                ]
+            ];
+        }
+
+        return json_encode($messageArray);
     }
 }
