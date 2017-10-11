@@ -10,6 +10,7 @@ use SNSPush\ARN\ARN;
 use SNSPush\ARN\ARNBuilder;
 use SNSPush\Exceptions\InvalidTypeException;
 use SNSPush\Exceptions\SNSPushException;
+use SNSPush\Exceptions\UnsupportedPlatformException;
 
 class SNSPush
 {
@@ -363,6 +364,7 @@ class SNSPush
      * @param array $data
      *
      * @return string
+     * @throws \SNSPush\Exceptions\UnsupportedPlatformException
      */
     public function formatPushMessageAsJson($message, array $data = []): string
     {
@@ -373,28 +375,52 @@ class SNSPush
             'default' => $message
         ];
 
-        // iOS message format.
-        if (array_key_exists('ios', $platformApplications)) {
-            foreach (['APNS_SANDBOX', 'APNS'] as $platform) {
-                $messageArray[$platform] = [
-                    'aps' => [
-                        'alert' => $message,
-                        $data
-                    ]
-                ];
-            }
-        }
+        foreach ((array) $platformApplications as $key => $value) {
+            $method = 'format' . ucfirst(mb_strtolower($key)) . 'MessageAsJson';
 
-        // Android message format.
-        if (array_key_exists('android', $platformApplications)) {
-            $messageArray['GCM'] = [
-                'data' => [
-                    'message' => $message,
-                    $data
-                ]
-            ];
+            if (!method_exists($this, $method)) {
+                throw new UnsupportedPlatformException('This platform is not supported.');
+            }
+
+            $messageArray[$value] = $this->$method($message, $data);
         }
 
         return json_encode($messageArray);
+    }
+
+    /**
+     * Format IOS message as JSON.
+     *
+     * @param $message
+     * @param $data
+     *
+     * @return string
+     */
+    private function formatIosMessageAsJson($message, $data)
+    {
+        return json_encode(array_merge([
+            'aps' => [
+                'alert' => $message,
+            ]],
+                $data)
+        );
+    }
+
+    /**
+     * Format Android message as JSON.
+     *
+     * @param $message
+     * @param $data
+     *
+     * @return string
+     */
+    private function formatAndroidMessageAsJson($message, $data)
+    {
+        return json_encode(array_merge([
+            'data' => [
+                'message' => $message,
+            ]],
+                $data)
+        );
     }
 }
