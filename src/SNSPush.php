@@ -340,10 +340,10 @@ class SNSPush
 
         // Set the message
         if (!empty($message)) {
+            // Message structure defaults to json but can also be set to string.
             $data['MessageStructure'] = $atts['message_structure'] ?? 'json';
-
-            $data['Message'] = $data['MessageStructure'] === 'json' ?
-                $this->formatPushMessageAsJson($message, $atts['message_data']) : $message;
+            $data['Message'] = ($data['MessageStructure'] == 'json') ?
+                $this->formatPushMessageAsJson($message, $atts['payload']) : $message;
         }
 
         try {
@@ -370,11 +370,18 @@ class SNSPush
     {
         $platformApplications = $this->config['platform_applications'];
 
+        // Remove the application name from the platform endpoint.
+        array_walk($platformApplications, function(&$value) {
+            list($platform) = explode('/', $value);
+            $value = $platform;
+        });
+
         // Default message format.
         $messageArray = [
             'default' => $message
         ];
 
+        // Loop through provided platforms to build the push message in the correct format.
         foreach ((array) $platformApplications as $key => $value) {
             $method = 'format' . ucfirst(mb_strtolower($key)) . 'MessageAsJson';
 
