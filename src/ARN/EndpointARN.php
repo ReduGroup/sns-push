@@ -24,4 +24,14 @@ class EndpointARN extends ARN
     {
         return 'TargetArn';
     }
+
+    /**
+     * Get the endpoint key for removing device.
+     *
+     * @return string
+     */
+    public function getRemoveDeviceKey(): string
+    {
+        return 'EndpointArn';
+    }
 }

@@ -22,6 +22,11 @@ class ARNBuilder
      */
     protected $region;
 
+    /**
+     * Platform application.
+     *
+     * @var array
+     */
     protected $platformApplications;
 
     /**
@@ -56,6 +61,8 @@ class ARNBuilder
             return $this->createTopicARN($target);
         } elseif ($type === SNSPush::TYPE_APPLICATION) {
             return $this->createApplicationARN($target);
+        } elseif ($type === SNSPush::TYPE_SUBSCRIPTION) {
+            return $this->createSubscriptionARN($target);
         }
 
         throw new InvalidArgumentException('Invalid type.');
@@ -100,5 +107,18 @@ class ARNBuilder
     public function createEndpointARN($target): EndpointARN
     {
         return new EndpointARN($this->region, $this->accountId, $target);
+    }
+
+    /**
+     * Create an Subscription ARN.
+     *
+     * @param $target
+     *
+     * @return \SNSPush\ARN\SubscriptionARN
+     * @throws \InvalidArgumentException
+     */
+    public function createSubscriptionARN($target): SubscriptionARN
+    {
+        return new SubscriptionARN($this->region, $this->accountId, $target);
     }
 }

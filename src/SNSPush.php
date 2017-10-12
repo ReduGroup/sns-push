@@ -8,6 +8,9 @@ use Aws\Sns\Exception\SnsException;
 use Aws\Sns\SnsClient;
 use SNSPush\ARN\ARN;
 use SNSPush\ARN\ARNBuilder;
+use SNSPush\ARN\EndpointARN;
+use SNSPush\ARN\SubscriptionARN;
+use SNSPush\ARN\TopicARN;
 use SNSPush\Exceptions\InvalidTypeException;
 use SNSPush\Exceptions\SNSPushException;
 use SNSPush\Exceptions\UnsupportedPlatformException;
@@ -20,6 +23,7 @@ class SNSPush
     const TYPE_ENDPOINT = 1;
     const TYPE_TOPIC = 2;
     const TYPE_APPLICATION = 3;
+    const TYPE_SUBSCRIPTION = 4;
 
     /**
      * List of endpoint targets supported by this package.
@@ -27,7 +31,7 @@ class SNSPush
      * @var array
      */
     protected static $types = [
-        self::TYPE_ENDPOINT, self::TYPE_TOPIC, self::TYPE_APPLICATION
+        self::TYPE_ENDPOINT, self::TYPE_TOPIC, self::TYPE_APPLICATION, self::TYPE_SUBSCRIPTION
     ];
 
     /**
@@ -146,6 +150,7 @@ class SNSPush
      * @param $platform
      *
      * @return mixed
+     * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
@@ -159,7 +164,7 @@ class SNSPush
                 'Token' => $token
             ]);
 
-            return $result['EndpointArn'] ?? false;
+            return isset($result['EndpointArn']) ? EndpointARN::parse($result['EndpointArn']) : false;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
         } catch (ApiGatewayException $e) {
@@ -168,19 +173,22 @@ class SNSPush
     }
 
     /**
-     * Subscribe a device endpoint to an ARN.
+     * Subscribe a device endpoint to an ARN (topic subscription).
      *
      * @param       $endpointArn
-     * @param       $topicArn
+     * @param       $arn
      * @param array $atts
      *
      * @return bool|mixed
+     * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function subscribeDeviceToTopic($endpointArn, $topicArn, array $atts = [])
+    public function subscribeDeviceToTopic($endpointArn, $arn, array $atts = [])
     {
-        $arn = $this->arnBuilder->create(self::TYPE_TOPIC, $topicArn);
+        if (!$arn instanceof TopicArn) {
+            $arn = TopicArn::parse($arn);
+        }
 
         try {
             $result = $this->client->subscribe([
@@ -189,7 +197,36 @@ class SNSPush
                 $arn->getKey() => $arn->toString()
             ]);
 
-            return $result['SubscriptionArn'] ?? false;
+            return isset($result['SubscriptionArn']) ? SubscriptionARN::parse($result['SubscriptionArn']) : false;
+        } catch (SnsException $e) {
+            throw new SNSPushException($e->getMessage());
+        } catch (ApiGatewayException $e) {
+            throw new SNSPushException('There was an unknown problem with the AWS SNS API. Code: ' . $e->getCode());
+        }
+    }
+
+    /**
+     * Remove a device endpoint from an ARN (unsubscribe topic).
+     *
+     * @param $arn
+     *
+     * @return \Aws\Result|bool
+     * @throws \SNSPush\Exceptions\InvalidArnException
+     * @throws \InvalidArgumentException
+     * @throws \SNSPush\Exceptions\SNSPushException
+     */
+    public function removeDeviceFromTopic($arn)
+    {
+        if (!$arn instanceof SubscriptionARN) {
+            $arn = SubscriptionARN::parse($arn);
+        }
+
+        try {
+            $result = $this->client->unsubscribe([
+                $arn->getKey() => $arn->toString()
+            ]);
+
+            return $result ?? false;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
         } catch (ApiGatewayException $e) {
@@ -203,38 +240,19 @@ class SNSPush
      * @param $arn
      *
      * @return bool|array
+     * @throws \SNSPush\Exceptions\InvalidArnException
+     * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
     public function removeDevice($arn)
     {
+        if (!$arn instanceof EndpointARN) {
+            $arn = EndpointARN::parse($arn);
+        }
+
         try {
             $result = $this->client->deleteEndpoint([
-                'EndpointArn' => $arn
-            ]);
-
-            return $result;
-        } catch (SnsException $e) {
-            throw new SNSPushException($e->getMessage());
-        } catch (ApiGatewayException $e) {
-            throw new SNSPushException('There was an unknown problem with the AWS SNS API. Code: ' . $e->getCode());
-        }
-    }
-
-    /**
-     * Get all endpoints for devices in a supported push notification service such as APNS or GCM.
-     *
-     * @param $platform
-     *
-     * @return \Aws\Result|bool
-     * @throws \SNSPush\Exceptions\SNSPushException
-     */
-    public function getDevices($platform)
-    {
-        $platformApplicationArn = $this->getPlatformApplicationArn($platform);
-
-        try {
-            $result = $this->client->listEndpointsByPlatformApplication([
-                'PlatformApplicationArn' => $platformApplicationArn
+                $arn->getRemoveDeviceKey() => $arn->toString()
             ]);
 
             return $result ?? false;
