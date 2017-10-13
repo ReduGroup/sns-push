@@ -2,6 +2,9 @@
 
 namespace SNSPush\ARN;
 
+use SNSPush\Exceptions\InvalidArnException;
+use SNSPush\Region;
+
 class SubscriptionARN extends ARN
 {
     /**
