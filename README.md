@@ -45,9 +45,16 @@ require __DIR__ . '/vendor/autoload.php';
 
 # Usage
 
-Instantiate the SNSPush class with the following required config values: account_id, access_key, secret_key, platform_applications
+Instantiate the SNSPush class with the following required config values: 
+- account_id
+- access_key
+- secret_key
+- platform_applications
  
-Also configurable: region(eu-west-1), api_version(2010-03-31), scheme(http/s)
+Also configurable:
+- region [default: eu-west-1]
+- api_version [default: 2010-03-31]
+- scheme [default: https]
 ```php
 $sns = new SNSPush([
     'account_id' => '<aws-account-id>', // Required
@@ -79,7 +86,7 @@ $sns->removeDevice('<endpoint-arn>');
 
 ## Subscribe Device to Topic
 
-Subscribe a device to a Topic by passing the Endpoint Arn and Topic Arn
+Subscribe a device to a Topic by passing the Endpoint Arn and Topic Arn to `subscribeDeviceToTopic()`.
 
 ```php
 $sns->subscribeDeviceToTopic('<endpoint-arn>', '<topic-arn>');
@@ -146,8 +153,8 @@ Similarly, you can set the message structure and payload.
 Convenience methods are available:
 
 ```php
-$sns->sendEndpointPushNotification(<endpoint-arn>, $message, $options);
-$sns->sendTopicPushNotification(<topic-arn>, $message, $options);
+$sns->sendEndpointPushNotification('<endpoint-arn>', $message, $options);
+$sns->sendTopicPushNotification('<topic-arn>', $message, $options);
 ```
 
 ## To do
