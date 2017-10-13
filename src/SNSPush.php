@@ -176,7 +176,7 @@ class SNSPush
      * Subscribe a device endpoint to an ARN (topic subscription).
      *
      * @param       $endpointArn
-     * @param       $arn
+     * @param       $topicArn
      * @param array $atts
      *
      * @return bool|mixed
@@ -184,17 +184,21 @@ class SNSPush
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function subscribeDeviceToTopic($endpointArn, $arn, array $atts = [])
+    public function subscribeDeviceToTopic($endpointArn, $topicArn, array $atts = [])
     {
-        if (!$arn instanceof TopicArn) {
-            $arn = TopicArn::parse($arn);
+        if (!$topicArn instanceof TopicArn) {
+            $topicArn = TopicArn::parse($topicArn);
+        }
+
+        if (!$endpointArn instanceof EndpointARN) {
+            $endpointArn = EndpointARN::parse($endpointArn);
         }
 
         try {
             $result = $this->client->subscribe([
-                'Endpoint' => $endpointArn,
+                'Endpoint' => $endpointArn->toString(),
                 'Protocol' => $atts['protocol'] ?? 'application',
-                $arn->getKey() => $arn->toString()
+                $topicArn->getKey() => $topicArn->toString()
             ]);
 
             return isset($result['SubscriptionArn']) ? SubscriptionARN::parse($result['SubscriptionArn']) : false;
