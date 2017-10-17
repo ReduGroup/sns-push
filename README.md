@@ -53,7 +53,7 @@ Add 'sns' config keys to the `config/services.php`
 
 ## Other PHP Framework (not Laravel) Setup
 
-You should include the Composer `autoload` file if not already loaded:
+You should include the Composer `autoload.php` file if not already loaded:
 
 ```php
 require __DIR__ . '/vendor/autoload.php';
@@ -82,7 +82,7 @@ $sns = new SNSPush([
 ]);
 ```
 
-## Add device to Application
+## Add Device to Application
 
 Add a device to a platform application (ios/android) by passing the device token and application key to `addDevice()`.
 
