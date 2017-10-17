@@ -72,7 +72,7 @@ Also configurable:
 ```php
 $sns = new SNSPush([
     'account_id' => '<aws-account-id>', // Required
-    'access_key' => '<aws-iam-user-access-key>', // Required
+    'access_key' => '<aws-iam-user-access-key>', // Required 
     'secret_key' => '<aws-iam-user-secret-key>', // Required
     'scheme' => 'http', // Defaults to https
     'platform_applications' => [ // Required
