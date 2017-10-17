@@ -35,6 +35,22 @@ Now you have to include `SNSPushServiceProvider` in your `config/app.php`:
 ]
 ```
 
+Add 'sns' config keys to the `config/services.php`
+
+```php
+'sns' => [
+    'account_id' => env('SNS_ACCOUNT_ID', ''),
+    'access_key' => env('SNS_ACCESS_KEY', ''),
+    'secret_key' => env('SNS_SECRET_KEY', '+Ci9+QevDbWRgS+Mf1g'),
+    'scheme' => env('SNS_SCHEME', 'https'),
+    'region' => env('SNS_REGION', 'eu-west-1'),
+    'platform_applications' => [
+        'ios' => '<application-endpoint-arn>',
+        'android' => ''<application-endpoint-arn>'
+    ]
+],
+```
+
 ## Other PHP Framework (not Laravel) Setup
 
 You should include the Composer `autoload` file if not already loaded:
@@ -42,8 +58,6 @@ You should include the Composer `autoload` file if not already loaded:
 ```php
 require __DIR__ . '/vendor/autoload.php';
  ```
-
-# Usage
 
 Instantiate the SNSPush class with the following required config values: 
 - account_id
@@ -109,9 +123,8 @@ SNS Push supports sending notifications to both Topic Endpoint or directly to an
 ```php
 $message = 'Push notification message.';
 
-$sns->sendPushNotification(
+$sns->sendPushNotificationToDevice(
     '<endpoint-arn>', 
-    SNSPush::TYPE_ENDPOINT, 
     $message
 );
 ```
@@ -119,7 +132,7 @@ $sns->sendPushNotification(
 You can also optionally send a custom payload along with the message.
 
 ```php
-$sns->sendPushNotification('<endpoint-arn>', SNSPush::TYPE_ENDPOINT, $message, [
+$sns->sendPushNotificationToDevice('<endpoint-arn>', $message, [
     'payload' => [
         'id' => 9
     ]
@@ -131,7 +144,7 @@ The message structure is sent as JSON and will be properly formatted per device.
 If you are only sending a simple message to a single platform and would like to save on bytes you can set the message structure to a string.
 
 ```php
-$sns->sendPushNotification('<endpoint-arn>', SNSPush::TYPE_ENDPOINT, $message, [
+$sns->sendPushNotificationToDevice('<endpoint-arn>', $message, [
     'message_structure' => 'string'
 ]);
 ```
@@ -141,21 +154,13 @@ $sns->sendPushNotification('<endpoint-arn>', SNSPush::TYPE_ENDPOINT, $message, [
 ```php
 $message = 'Push notification message.';
 
-$sns->send->sendPushNotification(
+$sns->send->sendPushNotificationToTopic(
     '<topic-arn>', 
-    SNSPush::TYPE_TOPIC, 
     $message
 );
 ```
 
 Similarly, you can set the message structure and payload.
-
-Convenience methods are available:
-
-```php
-$sns->sendEndpointPushNotification('<endpoint-arn>', $message, $options);
-$sns->sendTopicPushNotification('<topic-arn>', $message, $options);
-```
 
 ## To do
 - Support more endpoints
