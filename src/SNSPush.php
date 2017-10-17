@@ -6,8 +6,8 @@ use Aws\ApiGateway\Exception\ApiGatewayException;
 use Aws\Credentials\Credentials;
 use Aws\Sns\Exception\SnsException;
 use Aws\Sns\SnsClient;
+use SNSPush\ARN\ApplicationARN;
 use SNSPush\ARN\ARN;
-use SNSPush\ARN\ARNBuilder;
 use SNSPush\ARN\EndpointARN;
 use SNSPush\ARN\SubscriptionARN;
 use SNSPush\ARN\TopicARN;
@@ -49,13 +49,6 @@ class SNSPush
     protected $config;
 
     /**
-     * Instance of the ARN builder.
-     *
-     * @var \SNSPush\ARN\ARNBuilder
-     */
-    protected $arnBuilder;
-
-    /**
      * SNSPush constructor.
      *
      * @param array $config
@@ -74,9 +67,6 @@ class SNSPush
 
         // Validate config.
         $this->validateConfig();
-
-        // Create the ARN builder instance.
-        $this->arnBuilder = new ARNBuilder($this->config);
 
         // Initialize the SNS Client.
         $this->client = $this->createClient();
@@ -147,16 +137,18 @@ class SNSPush
      * Adds a device to an application endpoint in AWS SNS.
      *
      * @param $token
-     * @param $platform
+     * @param $applicationArn
      *
      * @return mixed
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function addDevice($token, $platform)
+    public function addDevice($token, $applicationArn)
     {
-        $arn = $this->arnBuilder->create(self::TYPE_APPLICATION, $platform);
+        if (!$applicationArn instanceof ApplicationARN) {
+            $arn = ApplicationARN::parse($applicationArn);
+        }
 
         try {
             $result = $this->client->createPlatformEndpoint([
@@ -177,14 +169,14 @@ class SNSPush
      *
      * @param       $endpointArn
      * @param       $topicArn
-     * @param array $atts
+     * @param array $options
      *
      * @return bool|mixed
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function subscribeDeviceToTopic($endpointArn, $topicArn, array $atts = [])
+    public function subscribeDeviceToTopic($endpointArn, $topicArn, array $options = [])
     {
         if (!$topicArn instanceof TopicArn) {
             $topicArn = TopicArn::parse($topicArn);
@@ -197,7 +189,7 @@ class SNSPush
         try {
             $result = $this->client->subscribe([
                 'Endpoint' => $endpointArn->toString(),
-                'Protocol' => $atts['protocol'] ?? 'application',
+                'Protocol' => $options['protocol'] ?? 'application',
                 $topicArn->getKey() => $topicArn->toString()
             ]);
 
@@ -294,13 +286,16 @@ class SNSPush
      * @param array $options
      *
      * @return bool|mixed
+     * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \SNSPush\Exceptions\InvalidTypeException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function sendTopicPushNotification($arn, $message, array $options = [])
+    public function sendPushNotificationToTopic($arn, $message, array $options = [])
     {
-        return $this->sendPushNotification($arn, self::TYPE_TOPIC, $message, $options);
+        $arn = $arn instanceof TopicARN ? $arn : TopicARN::parse($arn);
+
+        return $this->sendPushNotification($arn, $message, $options);
     }
 
     /**
@@ -311,39 +306,16 @@ class SNSPush
      * @param array $options
      *
      * @return bool|mixed
+     * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \SNSPush\Exceptions\InvalidTypeException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function sendEndpointPushNotification($arn, $message, array $options = [])
+    public function sendPushNotificationToEndpoint($arn, $message, array $options = [])
     {
-        return $this->sendPushNotification($arn, self::TYPE_ENDPOINT, $message, $options);
-    }
+        $arn = $arn instanceof EndpointARN ? $arn : EndpointARN::parse($arn);
 
-    /**
-     * Send a Push Notification to an ARN.
-     *
-     * @param        $target
-     * @param        $type
-     * @param string $message
-     * @param array  $atts
-     *
-     * @return bool|mixed
-     * @throws \SNSPush\Exceptions\SNSPushException
-     * @throws \InvalidArgumentException
-     * @throws \SNSPush\Exceptions\InvalidTypeException
-     */
-    public function sendPushNotification($target, $type, $message = '', array $atts = [])
-    {
-        // Ensure the type is set to a topic or subscription.
-        if (!self::isValidType($type)) {
-            throw new InvalidTypeException('This type is invalid.');
-        }
-
-        // Set the ARN endpoint
-        $arn = $this->arnBuilder->create($type, $target);
-
-        return $this->sendPushNotificationWithArn($arn, $message, $atts);
+        return $this->sendPushNotification($arn, $message, $options);
     }
 
     /**
@@ -351,21 +323,25 @@ class SNSPush
      *
      * @param \SNSPush\ARN\ARN $arn
      * @param                  $message
-     * @param                  $atts
+     * @param                  $options
      *
      * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function sendPushNotificationWithArn(ARN $arn, $message, $atts)
+    private function sendPushNotification(ARN $arn, $message, $options)
     {
+        if (!$arn instanceof EndpointARN && !$arn instanceof TopicARN) {
+            throw new InvalidTypeException('You can only send push notifications to a Topic Arn or an Endpoint Arn');
+        }
+
         $data[$arn->getKey()] = $arn->toString();
 
         // Set the message
         if (!empty($message)) {
             // Message structure defaults to json but can also be set to string.
-            $data['MessageStructure'] = $atts['message_structure'] ?? 'json';
+            $data['MessageStructure'] = $options['message_structure'] ?? 'json';
             $data['Message'] = ($data['MessageStructure'] == 'json') ?
-                $this->formatPushMessageAsJson($message, $atts['payload']) : $message;
+                $this->formatPushMessageAsJson($message, $options['payload']) : $message;
         }
 
         try {
@@ -386,6 +362,8 @@ class SNSPush
      * @param array $data
      *
      * @return string
+     * @throws \SNSPush\Exceptions\InvalidArnException
+     * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\UnsupportedPlatformException
      */
     public function formatPushMessageAsJson($message, array $data = []): string
@@ -394,7 +372,9 @@ class SNSPush
 
         // Remove the application name from the platform endpoint.
         array_walk($platformApplications, function(&$value) {
-            list($platform) = explode('/', $value);
+            $arn = ApplicationARN::parse($value);
+            list($app, $platform) = explode('/', $arn->getTarget());
+
             $value = $platform;
         });
 
