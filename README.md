@@ -41,7 +41,7 @@ Add 'sns' config keys to the `config/services.php`
 'sns' => [
     'account_id' => env('SNS_ACCOUNT_ID', ''),
     'access_key' => env('SNS_ACCESS_KEY', ''),
-    'secret_key' => env('SNS_SECRET_KEY', '+Ci9+QevDbWRgS+Mf1g'),
+    'secret_key' => env('SNS_SECRET_KEY', ''),
     'scheme' => env('SNS_SCHEME', 'https'),
     'region' => env('SNS_REGION', 'eu-west-1'),
     'platform_applications' => [
