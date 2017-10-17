@@ -23,7 +23,7 @@ class SNSPushServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('sns-push', function () {
+        $this->app->singleton(SNSPush::class, function () {
             return new SNSPush(config('services.sns'));
         });
     }
