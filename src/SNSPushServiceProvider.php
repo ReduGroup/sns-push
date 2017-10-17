@@ -7,20 +7,13 @@ use Illuminate\Support\ServiceProvider;
 class SNSPushServiceProvider extends ServiceProvider
 {
     /**
-     * The package name.
-     *
-     * @var string
-     */
-    protected $packageName = 'sns-push';
-
-    /**
      * Perform post-registration booting of services.
      *
      * @return void
      */
     public function boot()
     {
-        // ...
+        //
     }
 
     /**
@@ -30,6 +23,18 @@ class SNSPushServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind($this->packageName, SNSPush::class);
+        $this->app->singleton('sns-push', function () {
+            return new SNSPush(config('services.sns'));
+        });
+    }
+
+    /**
+     * Tell what services this package provides.
+     *
+     * @return array
+     */
+    public function provides()
+    {
+        return [SNSPush::class];
     }
 }
