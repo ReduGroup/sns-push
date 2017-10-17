@@ -46,7 +46,7 @@ Add 'sns' config keys to the `config/services.php`
     'region' => env('SNS_REGION', 'eu-west-1'),
     'platform_applications' => [
         'ios' => '<application-endpoint-arn>',
-        'android' => ''<application-endpoint-arn>'
+        'android' => '<application-endpoint-arn>'
     ]
 ],
 ```
