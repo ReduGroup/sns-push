@@ -137,15 +137,17 @@ class SNSPush
      * Adds a device to an application endpoint in AWS SNS.
      *
      * @param $token
-     * @param $applicationArn
+     * @param $platform
      *
      * @return mixed
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function addDevice($token, $applicationArn)
+    public function addDevice($token, $platform)
     {
+        $applicationArn = $this->config['platform_applications'][$platform];
+
         if (!$applicationArn instanceof ApplicationARN) {
             $arn = ApplicationARN::parse($applicationArn);
         }
