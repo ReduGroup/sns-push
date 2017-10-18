@@ -125,7 +125,8 @@ class SNSPush
     /**
      * Check if provided endpoint type is supported and valid.
      *
-     * @param $type
+     * @param int $type
+     *
      * @return bool
      */
     protected static function isValidType($type): bool
@@ -136,10 +137,10 @@ class SNSPush
     /**
      * Adds a device to an application endpoint in AWS SNS.
      *
-     * @param $token
-     * @param $platform
+     * @param string $token
+     * @param string $platform
      *
-     * @return mixed
+     * @return \SNSPush\ARN\EndpointARN
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
@@ -169,11 +170,11 @@ class SNSPush
     /**
      * Subscribe a device endpoint to an ARN (topic subscription).
      *
-     * @param       $endpointArn
-     * @param       $topicArn
-     * @param array $options
+     * @param \SNSPush\ARN\EndpointARN|string $endpointArn
+     * @param \SNSPush\ARN\TopicARN|string    $topicArn
+     * @param array                           $options
      *
-     * @return bool|mixed
+     * @return \SNSPush\ARN\SubscriptionARN|bool
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
@@ -206,9 +207,9 @@ class SNSPush
     /**
      * Remove a device endpoint from an ARN (unsubscribe topic).
      *
-     * @param $arn
+     * @param \SNSPush\ARN\SubscriptionARN|string $arn
      *
-     * @return \Aws\Result|bool
+     * @return bool
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
@@ -220,11 +221,11 @@ class SNSPush
         }
 
         try {
-            $result = $this->client->unsubscribe([
+            $this->client->unsubscribe([
                 $arn->getKey() => $arn->toString()
             ]);
 
-            return $result ?? false;
+            return true;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
         } catch (ApiGatewayException $e) {
@@ -235,9 +236,9 @@ class SNSPush
     /**
      * Removes a device to an application endpoint in AWS SNS.
      *
-     * @param $arn
+     * @param \SNSPush\ARN\EndpointARN|string $arn
      *
-     * @return bool|array
+     * @return bool
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
@@ -249,11 +250,11 @@ class SNSPush
         }
 
         try {
-            $result = $this->client->deleteEndpoint([
+            $this->client->deleteEndpoint([
                 $arn->getRemoveDeviceKey() => $arn->toString()
             ]);
 
-            return $result ?? false;
+            return true;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
         } catch (ApiGatewayException $e) {
@@ -283,11 +284,11 @@ class SNSPush
     /**
      * Send push notification to a topic endpoint.
      *
-     * @param       $arn
-     * @param       $message
-     * @param array $options
+     * @param \SNSPush\ARN\TopicARN|string $arn
+     * @param string                       $message
+     * @param array                        $options
      *
-     * @return bool|mixed
+     * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \SNSPush\Exceptions\InvalidTypeException
      * @throws \InvalidArgumentException
@@ -303,11 +304,11 @@ class SNSPush
     /**
      * Send push notification to a device endpoint.
      *
-     * @param       $arn
-     * @param       $message
-     * @param array $options
+     * @param \SNSPush\ARN\EndpointARN $arn
+     * @param string                   $message
+     * @param array                    $options
      *
-     * @return bool|mixed
+     * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \SNSPush\Exceptions\InvalidTypeException
      * @throws \InvalidArgumentException
@@ -324,8 +325,8 @@ class SNSPush
      * Send the push notification.
      *
      * @param \SNSPush\ARN\ARN $arn
-     * @param                  $message
-     * @param                  $options
+     * @param string           $message
+     * @param array            $options
      *
      * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\SNSPushException
@@ -360,8 +361,8 @@ class SNSPush
     /**
      * Format push message as json in required format for various platforms.
      *
-     * @param       $message
-     * @param array $data
+     * @param string $message
+     * @param array  $data
      *
      * @return string
      * @throws \SNSPush\Exceptions\InvalidArnException
@@ -411,10 +412,9 @@ class SNSPush
     {
         return json_encode(array_merge([
             'aps' => [
-                'alert' => $message,
-            ]],
-                $data)
-        );
+                'alert' => $message
+            ]
+        ], $data));
     }
 
     /**
@@ -429,9 +429,8 @@ class SNSPush
     {
         return json_encode(array_merge([
             'data' => [
-                'message' => $message,
-            ]],
-                $data)
-        );
+                'message' => $message
+            ]
+        ], $data));
     }
 }
