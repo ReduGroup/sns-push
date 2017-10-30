@@ -2,6 +2,7 @@
 
 namespace SNSPush;
 
+use Aws\AwsClientInterface;
 use Aws\ApiGateway\Exception\ApiGatewayException;
 use Aws\Credentials\Credentials;
 use Aws\Sns\Exception\SnsException;
@@ -56,7 +57,7 @@ class SNSPush
      * @throws \SNSPush\Exceptions\SNSPushException
      * @throws \InvalidArgumentException
      */
-    public function __construct(array $config = [])
+    public function __construct(array $config = [], AwsClientInterface $client = null)
     {
         // Set configuration data.
         $this->config = array_merge([
@@ -69,7 +70,7 @@ class SNSPush
         $this->validateConfig();
 
         // Initialize the SNS Client.
-        $this->client = $this->createClient();
+        $this->client = $client ?? $this->createClient();
     }
 
     /**
@@ -374,7 +375,7 @@ class SNSPush
         $platformApplications = $this->config['platform_applications'];
 
         // Remove the application name from the platform endpoint.
-        array_walk($platformApplications, function(&$value) {
+        array_walk($platformApplications, function (&$value) {
             $arn = ApplicationARN::parse($value);
             list($app, $platform) = explode('/', $arn->getTarget());
 
