@@ -80,9 +80,9 @@ class Message implements MessageInterface
     /**
      * @return string
      */
-    public function getTitle(): ?string
+    public function getTitle(): string
     {
-        return $this->title;
+        return $this->title ?? '';
     }
 
     /**
@@ -99,9 +99,9 @@ class Message implements MessageInterface
     /**
      * @return string
      */
-    public function getBody(): ?string
+    public function getBody(): string
     {
-        return $this->body;
+        return $this->body ?? '';
     }
 
     /**
@@ -116,9 +116,9 @@ class Message implements MessageInterface
     }
 
     /**
-     * @return int
+     * @return int|null
      */
-    public function getCount(): ?int
+    public function getCount()
     {
         return $this->count;
     }
@@ -135,11 +135,11 @@ class Message implements MessageInterface
     }
 
     /**
-     * @return string|null
+     * @return string
      */
-    public function getAndroidSound(): ?string
+    public function getAndroidSound(): string
     {
-        return $this->androidSound;
+        return $this->androidSound ?? '';
     }
 
     /**
@@ -156,9 +156,9 @@ class Message implements MessageInterface
     /**
      * @return string|null
      */
-    public function getIosSound(): ?string
+    public function getIosSound(): string
     {
-        return $this->iosSound;
+        return $this->iosSound ?? '';
     }
 
     /**
@@ -173,9 +173,9 @@ class Message implements MessageInterface
     }
 
     /**
-     * @return bool
+     * @return bool|null
      */
-    public function getContentAvailable(): ?bool
+    public function getContentAvailable()
     {
         return $this->contentAvailable;
     }
@@ -215,7 +215,7 @@ class Message implements MessageInterface
      */
     public function getUseAndroidInboxMode(): bool
     {
-        return $this->useAndroidInboxMode;
+        return $this->useAndroidInboxMode ?? false;
     }
 
     /**
@@ -232,9 +232,9 @@ class Message implements MessageInterface
     /**
      * @return string|null
      */
-    public function getAndroidInboxModeGroupMessage(): ?string
+    public function getAndroidInboxModeGroupMessage(): string
     {
-        return $this->androidInboxModeGroupMessage;
+        return $this->androidInboxModeGroupMessage || '';
     }
 
     /**
@@ -242,7 +242,7 @@ class Message implements MessageInterface
      *
      * @return static
      */
-    public function setAndroidInboxModeGroupMessage(?string $androidInboxModeGroupMessage)
+    public function setAndroidInboxModeGroupMessage(string $androidInboxModeGroupMessage)
     {
         $this->androidInboxModeGroupMessage = $androidInboxModeGroupMessage;
         return $this;
@@ -253,7 +253,7 @@ class Message implements MessageInterface
      */
     public function getIosData(): array
     {
-        return $this->filterNull(
+        return $this->filterBlank(
             array_merge([
                 'aps' => [
                     'alert' => [
@@ -273,7 +273,7 @@ class Message implements MessageInterface
      */
     public function getAndroidData(): array
     {
-        return $this->filterNull(
+        return $this->filterBlank(
             [
                 'data' => array_merge([
                     'title' => $this->getTitle(),
@@ -287,22 +287,23 @@ class Message implements MessageInterface
     }
 
     /**
-     * recursively removes null values from an array
+     * recursively removes blank values from an array
+     * NB. Should not touch zero or false values
      *
-     * @param  array  $arr the array to have null values removed
+     * @param  array  $arr the array to have blank values removed
      *
-     * @return array       the array minus any null values
+     * @return array       the array minus any blank values
      */
-    public function filterNull(array $arr): array
+    public function filterBlank(array $arr): array
     {
         foreach ($arr as $key => $value) {
             if (is_array($value)) {
-                $arr[$key] = $this->filterNull($value);
+                $arr[$key] = $this->filterBlank($value);
             }
         }
 
         return array_filter($arr, function ($var) {
-            return !(is_null($var) || (is_array($var) && empty($var)));
+            return !(is_null($var) || $var === '' || (is_array($var) && empty($var)));
         });
     }
 }

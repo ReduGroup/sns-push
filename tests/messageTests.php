@@ -79,6 +79,24 @@ class MessageTest extends TestCase
             ],
             [
                 (new Message())
+                    ->setBadge(0)
+                    ->setContentAvailable(1)
+                    ,
+                [
+                    'aps' => [
+                        'badge' => 0,
+                        'content-available' => true,
+                    ]
+                ],
+                [
+                    'data' => [
+                        'badge' => 0,
+                        'content-available' => true,
+                    ]
+                ],
+            ],
+            [
+                (new Message())
                     ->setBadge(5)
                     ->setContentAvailable(1)
                     ->setPayload([
