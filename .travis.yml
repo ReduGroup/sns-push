@@ -7,4 +7,4 @@ before_install:
   - composer self-update
   - composer install --no-interaction --prefer-dist --no-suggest
 script:
-  - vendor/bin/phpunit
+  - ./vendor/bin/phpunit
