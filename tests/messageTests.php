@@ -61,6 +61,53 @@ class MessageTest extends TestCase
             ],
             [
                 (new Message())
+                    ->setTitle('Message Title')
+                    ->setBody('Message body')
+                    ->setUseAndroidInboxMode()
+                    ,
+                [
+                    'aps' => [
+                        'alert' => [
+                            'title' => 'Message Title',
+                            'body' => 'Message body',
+                        ],
+                    ]
+                ],
+                [
+                    'data' => [
+                        'title' => 'Message Title',
+                        'message' => 'Message body',
+                        'style' => 'inbox',
+                        'summaryText' => '%n% messages',
+                    ]
+                ],
+            ],
+            [
+                (new Message())
+                    ->setTitle('Message Title')
+                    ->setBody('Message body')
+                    ->setUseAndroidInboxMode()
+                    ->setAndroidInboxModeGroupMessage('You have %n% messages. Please pay attention.')
+                    ,
+                [
+                    'aps' => [
+                        'alert' => [
+                            'title' => 'Message Title',
+                            'body' => 'Message body',
+                        ],
+                    ]
+                ],
+                [
+                    'data' => [
+                        'title' => 'Message Title',
+                        'message' => 'Message body',
+                        'style' => 'inbox',
+                        'summaryText' => 'You have %n% messages. Please pay attention.',
+                    ]
+                ],
+            ],
+            [
+                (new Message())
                     ->setBadge(5)
                     ->setContentAvailable(1)
                     ,

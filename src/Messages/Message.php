@@ -234,7 +234,7 @@ class Message implements MessageInterface
      */
     public function getAndroidInboxModeGroupMessage(): string
     {
-        return $this->androidInboxModeGroupMessage || '';
+        return $this->androidInboxModeGroupMessage;
     }
 
     /**
@@ -275,13 +275,20 @@ class Message implements MessageInterface
     {
         return $this->filterBlank(
             [
-                'data' => array_merge([
+                'data' => array_merge(
+                    [
                     'title' => $this->getTitle(),
                     'message' => $this->getBody(),
                     'sound' => $this->getAndroidSound(),
                     'badge' => $this->getCount(),
                     'content-available' => $this->getContentAvailable(),
-                ], $this->getPayload())
+                ],
+                $this->getPayload(),
+                $this->getUseAndroidInboxMode() ? [
+                    'style' => 'inbox',
+                    'summaryText' => $this->getAndroidInboxModeGroupMessage()
+                ] : []
+                )
             ]
         );
     }
