@@ -7,7 +7,8 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "SNSPush\\": "src/"
+            "SNSPush\\": "src/",
+            "Tests\\": "tests"
         }
     },
     "authors": [
@@ -26,5 +27,10 @@
         "php": ">=7.0.0",
         "aws/aws-sdk-php": "^3.36",
         "aws/aws-php-sns-message-validator": "^1.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.4",
+        "mockery/mockery": "^1.0",
+        "doctrine/instantiator": "1.0.5"
     }
 }

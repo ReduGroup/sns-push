@@ -2,6 +2,7 @@
 
 namespace SNSPush;
 
+use Aws\AwsClientInterface;
 use Aws\ApiGateway\Exception\ApiGatewayException;
 use Aws\Credentials\Credentials;
 use Aws\Sns\Exception\SnsException;
@@ -14,6 +15,7 @@ use SNSPush\ARN\TopicARN;
 use SNSPush\Exceptions\InvalidTypeException;
 use SNSPush\Exceptions\SNSPushException;
 use SNSPush\Exceptions\UnsupportedPlatformException;
+use SNSPush\Messages\MessageInterface;
 
 class SNSPush
 {
@@ -56,7 +58,7 @@ class SNSPush
      * @throws \SNSPush\Exceptions\SNSPushException
      * @throws \InvalidArgumentException
      */
-    public function __construct(array $config = [])
+    public function __construct(array $config = [], AwsClientInterface $client = null)
     {
         // Set configuration data.
         $this->config = array_merge([
@@ -69,7 +71,7 @@ class SNSPush
         $this->validateConfig();
 
         // Initialize the SNS Client.
-        $this->client = $this->createClient();
+        $this->client = $client ?? $this->createClient();
     }
 
     /**
@@ -181,8 +183,8 @@ class SNSPush
      */
     public function subscribeDeviceToTopic($endpointArn, $topicArn, array $options = [])
     {
-        if (!$topicArn instanceof TopicArn) {
-            $topicArn = TopicArn::parse($topicArn);
+        if (!$topicArn instanceof TopicARN) {
+            $topicArn = TopicARN::parse($topicArn);
         }
 
         if (!$endpointArn instanceof EndpointARN) {
@@ -286,7 +288,6 @@ class SNSPush
      *
      * @param \SNSPush\ARN\TopicARN|string $arn
      * @param string                       $message
-     * @param array                        $options
      *
      * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\InvalidArnException
@@ -294,11 +295,11 @@ class SNSPush
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function sendPushNotificationToTopic($arn, $message, array $options = [])
+    public function sendPushNotificationToTopic($arn, $message)
     {
         $arn = $arn instanceof TopicARN ? $arn : TopicARN::parse($arn);
 
-        return $this->sendPushNotification($arn, $message, $options);
+        return $this->sendPushNotification($arn, $message);
     }
 
     /**
@@ -306,7 +307,6 @@ class SNSPush
      *
      * @param \SNSPush\ARN\EndpointARN $arn
      * @param string                   $message
-     * @param array                    $options
      *
      * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\InvalidArnException
@@ -314,11 +314,11 @@ class SNSPush
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    public function sendPushNotificationToEndpoint($arn, $message, array $options = [])
+    public function sendPushNotificationToEndpoint($arn, $message)
     {
         $arn = $arn instanceof EndpointARN ? $arn : EndpointARN::parse($arn);
 
-        return $this->sendPushNotification($arn, $message, $options);
+        return $this->sendPushNotification($arn, $message);
     }
 
     /**
@@ -326,12 +326,11 @@ class SNSPush
      *
      * @param \SNSPush\ARN\ARN $arn
      * @param string           $message
-     * @param array            $options
      *
      * @return \Aws\Result|bool
      * @throws \SNSPush\Exceptions\SNSPushException
      */
-    private function sendPushNotification(ARN $arn, $message, $options)
+    private function sendPushNotification(ARN $arn, $message)
     {
         if (!$arn instanceof EndpointARN && !$arn instanceof TopicARN) {
             throw new InvalidTypeException('You can only send push notifications to a Topic Arn or an Endpoint Arn');
@@ -339,17 +338,16 @@ class SNSPush
 
         $data[$arn->getKey()] = $arn->toString();
 
-        // Set the message
-        if (!empty($message)) {
-            // Message structure defaults to json but can also be set to string.
-            $data['MessageStructure'] = $options['message_structure'] ?? 'json';
-            $data['Message'] = ($data['MessageStructure'] == 'json') ?
-                $this->formatPushMessageAsJson($message, $options['payload']) : $message;
+        if ($message instanceof MessageInterface) {
+            $data['Message'] = $this->formatPushMessageAsJson($message);
+            $data['MessageStructure'] = 'json';
+        } else {
+            $data['Message'] = (string) $message;
+            $data['MessageStructure'] = 'string';
         }
 
         try {
             $result = $this->client->publish($data);
-
             return $result ?? false;
         } catch (SnsException $e) {
             throw new SNSPushException($e->getMessage());
@@ -361,20 +359,19 @@ class SNSPush
     /**
      * Format push message as json in required format for various platforms.
      *
-     * @param string $message
-     * @param array  $data
+     * @param MessageInterface $message
      *
      * @return string
      * @throws \SNSPush\Exceptions\InvalidArnException
      * @throws \InvalidArgumentException
      * @throws \SNSPush\Exceptions\UnsupportedPlatformException
      */
-    public function formatPushMessageAsJson($message, array $data = []): string
+    public function formatPushMessageAsJson(MessageInterface $message): string
     {
         $platformApplications = $this->config['platform_applications'];
 
         // Remove the application name from the platform endpoint.
-        array_walk($platformApplications, function(&$value) {
+        array_walk($platformApplications, function (&$value) {
             $arn = ApplicationARN::parse($value);
             list($app, $platform) = explode('/', $arn->getTarget());
 
@@ -383,54 +380,19 @@ class SNSPush
 
         // Default message format.
         $messageArray = [
-            'default' => $message
+            'default' => $message->getBody()
         ];
 
         // Loop through provided platforms to build the push message in the correct format.
         foreach ((array) $platformApplications as $key => $value) {
-            $method = 'format' . ucfirst(mb_strtolower($key)) . 'MessageAsJson';
+            $method = 'get' . ucfirst(mb_strtolower($key)) . 'Data';
 
-            if (!method_exists($this, $method)) {
+            if (!method_exists($message, $method)) {
                 throw new UnsupportedPlatformException('This platform is not supported.');
             }
 
-            $messageArray[$value] = $this->$method($message, $data);
+            $messageArray[$value] = json_encode($message->$method());
         }
-
         return json_encode($messageArray);
-    }
-
-    /**
-     * Format IOS message as JSON.
-     *
-     * @param $message
-     * @param $data
-     *
-     * @return string
-     */
-    private function formatIosMessageAsJson($message, $data)
-    {
-        return json_encode(array_merge([
-            'aps' => [
-                'alert' => $message
-            ]
-        ], $data));
-    }
-
-    /**
-     * Format Android message as JSON.
-     *
-     * @param $message
-     * @param $data
-     *
-     * @return string
-     */
-    private function formatAndroidMessageAsJson($message, $data)
-    {
-        return json_encode(array_merge([
-            'data' => [
-                'message' => $message
-            ]
-        ], $data));
     }
 }
